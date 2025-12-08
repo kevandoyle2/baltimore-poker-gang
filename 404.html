@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script>
+    // Redirect /login → /login (without .html) on S3
+    var path = location.pathname;
+    if (path.endsWith('/') || path === '') path += 'index.html';
+    if (!path.includes('.')) path += '.html';
+    location.replace(path);
+  </script>
+</head>
+</html>
