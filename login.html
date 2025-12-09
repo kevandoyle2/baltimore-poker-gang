@@ -22,12 +22,11 @@
       doc 
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
       authDomain: "baltimore-poker-gang.firebaseapp.com",
       projectId: "baltimore-poker-gang",
-      storageBucket: "baltimore-poker-gang.firebasestorage.app",
+      storageBucket: "baltimore-poker-gang.appspot.com",
       messagingSenderId: "1082334625118",
       appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf",
       measurementId: "G-WG9B6920WS"
@@ -37,7 +36,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Make globally available
+    // Expose globally for Alpine
     window.auth = auth;
     window.db = db;
     window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
@@ -57,8 +56,8 @@
       <div>
         <h3 class="text-2xl mb-6 text-center">Create Account</h3>
 
-        <input x-model="realName" placeholder="Real Name" class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
-        <input x-model="username" placeholder="Username" class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
+        <input x-model="realName" placeholder="Full Name" class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
+        <input x-model="username" placeholder="Username (letters & numbers only)" class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
         <input type="password" x-model="password" placeholder="Password" class="w-full p-4 mb-6 bg-gray-700 rounded-lg" />
 
         <button @click="signup()" class="w-full bg-red-600 hover:bg-red-500 py-4 rounded-lg font-bold">
@@ -104,15 +103,28 @@
         msg: '',
         err: false,
 
+        // Validate usernames BEFORE signup
+        validateUsername(name) {
+          const valid = /^[a-zA-Z0-9]+$/.test(name);
+          return valid;
+        },
+
         // CREATE ACCOUNT
         async signup() {
           if (!this.realName || !this.username || !this.password) {
-            this.msg = "Fill out all fields";
+            this.msg = "Please fill out all fields.";
             this.err = true;
             return;
           }
 
-          const fakeEmail = `${this.username.toLowerCase()}@bpg.com`;
+          if (!this.validateUsername(this.username)) {
+            this.msg = "Usernames may only contain letters and numbers — no spaces or special characters.";
+            this.err = true;
+            return;
+          }
+
+          const safeUsername = this.username.toLowerCase();
+          const fakeEmail = `${safeUsername}@bpg.com`;
 
           try {
             const cred = await createUserWithEmailAndPassword(auth, fakeEmail, this.password);
@@ -132,7 +144,14 @@
 
         // LOGIN
         async login() {
-          const fakeEmail = `${this.username.toLowerCase()}@bpg.com`;
+          if (!this.validateUsername(this.username)) {
+            this.msg = "Invalid username format.";
+            this.err = true;
+            return;
+          }
+
+          const safeUsername = this.username.toLowerCase();
+          const fakeEmail = `${safeUsername}@bpg.com`;
 
           try {
             await signInWithEmailAndPassword(auth, fakeEmail, this.password);
