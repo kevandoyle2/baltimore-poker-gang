@@ -11,64 +11,68 @@
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
   <!-- FIREBASE -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import {
-      getAuth, onAuthStateChanged, updatePassword, deleteUser, signOut
-    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import {
-      getFirestore, doc, getDoc, updateDoc, deleteDoc,
-      collection, getDocs, query, where
-    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import {
+    getAuth,
+    onAuthStateChanged,
+    updatePassword,
+    deleteUser,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+  import {
+    getFirestore,
+    doc, getDoc, updateDoc, deleteDoc,
+    collection, getDocs, query, where, addDoc
+  } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
-      authDomain: "baltimore-poker-gang.firebaseapp.com",
-      projectId: "baltimore-poker-gang",
-      storageBucket: "baltimore-poker-gang.appspot.com",
-      messagingSenderId: "1082334625118",
-      appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyCKS9PstXhK_9lVW6IRkCAJ_Gl0G8XlUw",
+    authDomain: "baltimore-poker-gang.firebaseapp.com",
+    projectId: "baltimore-poker-gang",
+    storageBucket: "baltimore-poker-gang.firebasestorage.app",
+    messagingSenderId: "1082334625118",
+    appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    window.auth = auth;
-    window.db = db;
+  window.auth = auth;
+  window.db = db;
 
-    window.FS = {
-      doc, getDoc, updateDoc, deleteDoc,
-      collection, getDocs, query, where,
-      updatePassword, deleteUser
-    };
+  /* ✅ FIXED — Add FULL set of Firestore functions */
+  window.FS = {
+    doc, getDoc, updateDoc, deleteDoc,
+    collection, getDocs, query, where, addDoc,
+    updatePassword, deleteUser
+  };
 
-    window.logout = async () => {
-      await signOut(auth);
-      location.href = "/index.html";
-    };
+  window.logout = async () => {
+    await signOut(auth);
+    location.href = "/index.html";
+  };
 
-    let alpineReady = false;
-    window.addEventListener("alpine:init", () => {
-      alpineReady = true;
-      if (window.currentUser !== undefined)
-        window.dispatchEvent(new CustomEvent("auth-changed", { detail: window.currentUser }));
-    });
+  let alpineReady = false;
+  window.addEventListener("alpine:init", () => {
+    alpineReady = true;
+    if (window.currentUser !== undefined) {
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: window.currentUser }));
+    }
+  });
 
-    onAuthStateChanged(auth, user => {
-      window.currentUser = user;
-      if (!user && !location.pathname.includes("login")) {
-        location.href = "/login.html";
-        return;
-      }
-
-      if (alpineReady)
+  onAuthStateChanged(auth, user => {
+    window.currentUser = user;
+    if (alpineReady) {
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+    } else {
+      setTimeout(() => {
         window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
-      else
-        setTimeout(() =>
-          window.dispatchEvent(new CustomEvent("auth-changed", { detail: user })), 50);
-    });
-  </script>
+      }, 50);
+    }
+  });
+</script>
 </head>
 
 <body class="min-h-screen bg-gray-900"
