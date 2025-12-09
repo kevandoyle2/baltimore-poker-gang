@@ -59,6 +59,12 @@
   </script>
 </head>
 
+<script>
+  window.addEventListener("auth-changed", e => {
+    console.log("AUTH STATE CHANGED:", e.detail);
+  });
+</script>
+
 <body class="min-h-screen flex flex-col items-center justify-start bg-gray-900">
 
   <!-- NAVIGATION BAR -->
