@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900 text-white">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaderboard — Baltimore Poker Gang</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { 
+      getAuth, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    import { 
+      getFirestore, 
+      collection, 
+      getDocs 
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
+      authDomain: "baltimore-poker-gang.firebaseapp.com",
+      projectId: "baltimore-poker-gang",
+      storageBucket: "baltimore-poker-gang.firebasestorage.app",
+      messagingSenderId: "1082334625118",
+      appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.auth = auth;
+    window.db = db;
+  </script>
+</head>
+
+<body x-data="lb()" x-init="init()" class="min-h-screen">
+
+  <!-- NAV -->
+  <nav class="bg-black p-4 shadow-lg">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+
+      <a href="/index.html" class="text-2xl font-bold flex items-center gap-3">
+        <i class="fas fa-diamond text-red-600"></i> Baltimore Poker Gang
+      </a>
+
+      <div class="flex gap-4">
+        <template x-if="loggedIn">
+          <a href="/account.html" 
+             class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded font-bold">
+            My Account
+          </a>
+        </template>
+
+        <template x-if="!loggedIn">
+          <a href="/login.html" 
+             class="bg-red-600 hover:bg-red-500 px-6 py-2 rounded font-bold">
+            Login / Sign Up
+          </a>
+        </template>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="max-w-4xl mx-auto p-6">
+
+    <h1 class="text-5xl font-bold text-center my-10">Leaderboard</h1>
+
+    <div class="bg-gray-800 rounded-xl overflow-hidden shadow-2xl">
+
+      <table class="w-full">
+        <thead class="bg-gray-900">
+          <tr>
+            <th class="p-6 text-left text-xl">Rank</th>
+            <th class="p-6 text-left text-xl">Username</th>
+            <th class="p-6 text-left text-xl">Sessions</th>
+            <th class="p-6 text-left text-xl">Net Profit</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <template x-for="(p, i) in players" :key="p.username">
+            <tr class="border-t border-gray-700 hover:bg-gray-750">
+              <td class="p-6 text-2xl font-bold" x-text="i + 1"></td>
+              <td class="p-6 text-xl" x-text="p.username"></td>
+              <td class="p-6 text-xl" x-text="p.count"></td>
+              <td class="p-6 text-2xl font-bold"
+                  :class="p.net >= 0 ? 'text-green-400' : 'text-red-400'">
+                $<span x-text="p.net.toFixed(2)"></span>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+
+      <div x-show="players.length === 0" 
+           class="p-20 text-center text-gray-500">
+        No sessions yet — be the first!
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+    function lb() {
+      return {
+        players: [],
+        loggedIn: false,
+
+        async init() {
+          // Detect login for navbar
+          onAuthStateChanged(auth, user => {
+            this.loggedIn = !!user;
+          });
+
+          // Fetch all sessions for leaderboard
+          const snap = await getDocs(collection(db, "sessions"));
+          const data = {};
+
+          snap.forEach(doc => {
+            const s = doc.data();
+            const user = s.username;
+
+            if (!data[user]) {
+              data[user] = { count: 0, net: 0 };
+            }
+
+            data[user].count++;
+            data[user].net += s.cashout - s.buyin;
+          });
+
+          this.players = Object.keys(data)
+            .map(username => ({
+              username,
+              ...data[username]
+            }))
+            .sort((a, b) => b.net - a.net);
+        }
+      };
+    }
+  </script>
+
+</body>
+</html>

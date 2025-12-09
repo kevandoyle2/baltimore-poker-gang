@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900 text-white">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Baltimore Poker Gang</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { 
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      updateEmail
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      getDocs,
+      addDoc
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
+      authDomain: "baltimore-poker-gang.firebaseapp.com",
+      projectId: "baltimore-poker-gang",
+      storageBucket: "baltimore-poker-gang.firebasestorage.app",
+      messagingSenderId: "1082334625118",
+      appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.auth = auth;
+    window.db = db;
+    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+  </script>
+</head>
+
+<body class="h-full flex items-center justify-center p-6" x-data="loginPage()">
+
+  <div class="bg-gray-800 p-10 rounded-2xl shadow-2xl w-full max-w-md">
+
+    <h2 class="text-4xl font-bold text-center mb-8">
+      Baltimore Poker Gang
+    </h2>
+
+    <!-- SIGNUP FORM -->
+    <template x-if="!isLogin">
+      <div>
+        <h3 class="text-2xl mb-6 text-center">Create Account</h3>
+
+        <input x-model="fullName" placeholder="Full Name"
+               class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
+
+        <input x-model="username" placeholder="Username"
+               class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
+
+        <input x-model="password" type="password" placeholder="Password"
+               class="w-full p-4 mb-6 bg-gray-700 rounded-lg" />
+
+        <button @click="signup()"
+                class="w-full bg-red-600 hover:bg-red-500 py-4 rounded-lg font-bold">
+          Sign Up
+        </button>
+
+        <p class="text-center mt-4 text-gray-400">
+          Have an account?
+          <button @click="isLogin=true" class="text-red-400">Login</button>
+        </p>
+      </div>
+    </template>
+
+    <!-- LOGIN FORM -->
+    <template x-if="isLogin">
+      <div>
+        <h3 class="text-2xl mb-6 text-center">Welcome Back</h3>
+
+        <input x-model="username" placeholder="Username"
+               class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
+
+        <input x-model="password" type="password" placeholder="Password"
+               class="w-full p-4 mb-6 bg-gray-700 rounded-lg" />
+
+        <button @click="login()"
+                class="w-full bg-green-600 hover:bg-green-500 py-4 rounded-lg font-bold">
+          Login
+        </button>
+
+        <p class="text-center mt-4 text-gray-400">
+          No account?
+          <button @click="isLogin=false" class="text-red-400">Sign Up</button>
+        </p>
+      </div>
+    </template>
+
+    <!-- MESSAGE OUTPUT -->
+    <div x-show="msg"
+         :class="err ? 'text-red-400' : 'text-green-400'"
+         class="mt-4 text-center"
+         x-text="msg">
+    </div>
+  </div>
+
+  <!-- ALPINE LOGIC -->
+  <script>
+    function loginPage() {
+      return {
+        isLogin: true,
+        fullName: "",
+        username: "",
+        password: "",
+        msg: "",
+        err: false,
+
+        async signup() {
+          this.msg = "";
+          if (!this.fullName || !this.username || !this.password) {
+            this.err = true;
+            this.msg = "Fill out all fields.";
+            return;
+          }
+
+          // Enforce unique username
+          const q = query(collection(db, "users"), where("username", "==", this.username.toLowerCase()));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            this.err = true;
+            this.msg = "That username is already taken.";
+            return;
+          }
+
+          try {
+            const syntheticEmail = `${this.username.toLowerCase()}@bpg.local`;
+
+            const cred = await createUserWithEmailAndPassword(auth, syntheticEmail, this.password);
+
+            await addDoc(collection(db, "users"), {
+              uid: cred.user.uid,
+              name: this.fullName,
+              username: this.username.toLowerCase()
+            });
+
+            location.href = "/account.html";
+
+          } catch (e) {
+            this.err = true;
+            this.msg = e.message;
+          }
+        },
+
+        async login() {
+          this.msg = "";
+
+          if (!this.username || !this.password) {
+            this.err = true;
+            this.msg = "Enter username and password.";
+            return;
+          }
+
+          const syntheticEmail = `${this.username.toLowerCase()}@bpg.local`;
+
+          try {
+            await signInWithEmailAndPassword(auth, syntheticEmail, this.password);
+            location.href = "/account.html";
+
+          } catch (e) {
+            this.err = true;
+            this.msg = "Wrong username/password.";
+          }
+        }
+      };
+    }
+  </script>
+
+</body>
+</html>

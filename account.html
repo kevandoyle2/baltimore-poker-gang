@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900 text-white">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Account — Baltimore Poker Gang</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { 
+      getAuth,
+      onAuthStateChanged,
+      signOut,
+      updateEmail,
+      updatePassword,
+      deleteUser
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    import {
+      getFirestore,
+      collection,
+      doc,
+      getDocs,
+      query,
+      where,
+      updateDoc,
+      deleteDoc
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
+      authDomain: "baltimore-poker-gang.firebaseapp.com",
+      projectId: "baltimore-poker-gang",
+      storageBucket: "baltimore-poker-gang.firebasestorage.app",
+      messagingSenderId: "1082334625118",
+      appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.auth = auth;
+    window.db = db;
+  </script>
+</head>
+
+<body x-data="accountPage()" x-init="init()" class="min-h-screen">
+
+  <!-- NAV -->
+  <nav class="bg-black p-4 shadow-lg">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <a href="/index.html" class="text-2xl font-bold flex items-center gap-3">
+        <i class="fas fa-diamond text-red-600"></i> Baltimore Poker Gang
+      </a>
+
+      <div>
+        <a href="/leaderboard.html"
+           class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded font-bold mr-4">Leaderboard</a>
+        <button @click="logout()"
+                class="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded font-bold">
+          Logout
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="max-w-4xl mx-auto p-6">
+
+    <!-- GREETING -->
+    <h2 class="text-4xl font-bold text-center mb-10">
+      <span x-text="`Welcome, ${fullName} \&quot;${username}\&quot;`"></span>
+    </h2>
+
+    <!-- PROFILE SETTINGS -->
+    <div class="bg-gray-800 p-8 rounded-xl shadow-xl mb-10">
+      <h3 class="text-2xl font-bold mb-6">Profile Settings</h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="text-gray-300">Full Name</label>
+          <input x-model="fullName" class="w-full mt-2 p-3 bg-gray-700 rounded-lg" />
+        </div>
+
+        <div>
+          <label class="text-gray-300">Username</label>
+          <input x-model="username" class="w-full mt-2 p-3 bg-gray-700 rounded-lg" />
+        </div>
+      </div>
+
+      <button @click="saveProfile()"
+              class="mt-6 bg-green-600 hover:bg-green-500 px-8 py-3 rounded-lg font-bold">
+        Save Changes
+      </button>
+
+      <div x-show="profileMsg" 
+           :class="profileErr?'text-red-400':'text-green-400'"
+           class="mt-4"
+           x-text="profileMsg"></div>
+    </div>
+
+    <!-- PASSWORD CHANGE -->
+    <div class="bg-gray-800 p-8 rounded-xl shadow-xl mb-10">
+      <h3 class="text-2xl font-bold mb-6">Change Password</h3>
+
+      <input type="password"
+             x-model="newPassword"
+             placeholder="New Password"
+             class="w-full p-3 bg-gray-700 rounded-lg" />
+
+      <button @click="changePassword()"
+              class="mt-6 bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-lg font-bold">
+        Update Password
+      </button>
+
+      <div x-show="passwordMsg"
+           :class="passwordErr?'text-red-400':'text-green-400'"
+           class="mt-4"
+           x-text="passwordMsg"></div>
+    </div>
+
+    <!-- DELETE ACCOUNT -->
+    <div class="bg-gray-800 p-8 rounded-xl shadow-xl border border-red-600">
+      <h3 class="text-2xl font-bold mb-4 text-red-400">Delete Account</h3>
+      <p class="text-gray-400 mb-4">This will permanently remove your account and all poker sessions.</p>
+
+      <button @click="deleteAccount()"
+              class="bg-red-700 hover:bg-red-600 px-8 py-3 rounded-lg font-bold">
+        Delete My Account
+      </button>
+
+      <div x-show="deleteMsg"
+           :class="deleteErr?'text-red-400':'text-green-400'"
+           class="mt-4"
+           x-text="deleteMsg"></div>
+    </div>
+
+  </div>
+
+  <!-- ALPINE COMPONENT SCRIPT -->
+  <script>
+    function accountPage() {
+      return {
+        uid: null,
+        userDocId: null,
+        fullName: "",
+        username: "",
+        originalUsername: "",
+        newPassword: "",
+        profileMsg: "",
+        profileErr: false,
+        passwordMsg: "",
+        passwordErr: false,
+        deleteMsg: "",
+        deleteErr: false,
+
+        async init() {
+          onAuthStateChanged(auth, async user => {
+            if (!user) {
+              location.href = "/login.html";
+              return;
+            }
+
+            this.uid = user.uid;
+
+            // Load user data from Firestore
+            const q = query(collection(db, "users"), where("uid", "==", user.uid));
+            const snap = await getDocs(q);
+
+            if (snap.empty) {
+              location.href = "/login.html";
+              return;
+            }
+
+            const docData = snap.docs[0].data();
+            this.userDocId = snap.docs[0].id;
+            this.fullName = docData.name;
+            this.username = docData.username;
+            this.originalUsername = docData.username;
+          });
+        },
+
+        async saveProfile() {
+          this.profileMsg = "";
+          if (!this.fullName || !this.username) {
+            this.profileErr = true;
+            this.profileMsg = "Fill all fields.";
+            return;
+          }
+
+          // Check for username uniqueness if changed
+          if (this.username.toLowerCase() !== this.originalUsername) {
+            const q = query(collection(db, "users"), where("username", "==", this.username.toLowerCase()));
+            const snap = await getDocs(q);
+
+            if (!snap.empty) {
+              this.profileErr = true;
+              this.profileMsg = "That username is already taken.";
+              return;
+            }
+
+            // Update Firebase Auth email (synthetic)
+            const newEmail = `${this.username.toLowerCase()}@bpg.local`;
+            await updateEmail(auth.currentUser, newEmail);
+          }
+
+          // Update Firestore doc
+          await updateDoc(doc(db, "users", this.userDocId), {
+            name: this.fullName,
+            username: this.username.toLowerCase()
+          });
+
+          this.originalUsername = this.username.toLowerCase();
+
+          this.profileErr = false;
+          this.profileMsg = "Profile updated!";
+        },
+
+        async changePassword() {
+          if (!this.newPassword) {
+            this.passwordErr = true;
+            this.passwordMsg = "Enter a new password.";
+            return;
+          }
+
+          try {
+            await updatePassword(auth.currentUser, this.newPassword);
+            this.passwordErr = false;
+            this.passwordMsg = "Password updated!";
+            this.newPassword = "";
+          } catch (e) {
+            this.passwordErr = true;
+            this.passwordMsg = e.message;
+          }
+        },
+
+        async deleteAccount() {
+          if (!confirm("Are you sure you want to delete your account? This cannot be undone.")) return;
+
+          try {
+            // Delete all sessions
+            const q = query(collection(db, "sessions"), where("userId", "==", this.uid));
+            const snap = await getDocs(q);
+            for (const s of snap.docs) {
+              await deleteDoc(doc(db, "sessions", s.id));
+            }
+
+            // Delete Firestore user record
+            await deleteDoc(doc(db, "users", this.userDocId));
+
+            // Delete Firebase Auth user
+            await deleteUser(auth.currentUser);
+
+            location.href = "/index.html";
+
+          } catch (e) {
+            this.deleteErr = true;
+            this.deleteMsg = e.message;
+          }
+        },
+
+        async logout() {
+          await signOut(auth);
+          location.href = "/index.html";
+        }
+      };
+    }
+  </script>
+
+</body>
+</html>
