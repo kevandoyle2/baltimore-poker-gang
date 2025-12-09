@@ -10,10 +10,10 @@
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <!-- Firebase SDK -->
+  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { 
+    import {
       getAuth,
       onAuthStateChanged,
       updatePassword,
@@ -33,7 +33,7 @@
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
+      apiKey: "AIzaSyCKS9PstXhK_9lVW6IRkCAJ_Gl0G8XlUw",
       authDomain: "baltimore-poker-gang.firebaseapp.com",
       projectId: "baltimore-poker-gang",
       storageBucket: "baltimore-poker-gang.appspot.com",
@@ -53,12 +53,12 @@
       window.location.href = "/index.html";
     };
 
+    window.FS = { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, updatePassword, deleteUser };
+
     onAuthStateChanged(auth, user => {
       window.currentUser = user;
       window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
     });
-
-    window.FS = { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, updatePassword, deleteUser };
   </script>
 </head>
 
@@ -66,7 +66,7 @@
       x-data="accountPage()"
       x-init="init()">
 
-  <!-- NAVIGATION BAR -->
+  <!-- NAVBAR -->
   <nav class="bg-black p-4 shadow-lg"
        x-data="{ user: null }"
        x-init="
@@ -74,49 +74,31 @@
          user = window.currentUser;
        ">
     <div class="max-w-6xl mx-auto flex justify-between items-center">
-
       <a href="/index.html" class="text-2xl font-bold flex items-center gap-3">
         <i class="fas fa-diamond text-red-600"></i> Baltimore Poker Gang
       </a>
-
       <div class="flex gap-4">
-
-        <!-- LOGGED OUT -->
         <template x-if="!user">
           <div class="flex gap-4">
             <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
-               Leaderboard
-            </a>
+               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
             <a href="/login.html"
-               class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">
-               Login / Sign Up
-            </a>
+               class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">Login / Sign Up</a>
           </div>
         </template>
 
-        <!-- LOGGED IN -->
         <template x-if="user">
           <div class="flex gap-4">
             <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
-               Leaderboard
-            </a>
+               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
             <a href="/sessions.html"
-               class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">
-               Sessions
-            </a>
+               class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Sessions</a>
             <a href="/account.html"
-               class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">
-               My Account
-            </a>
+               class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">My Account</a>
             <button @click="logout()"
-               class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">
-               Logout
-            </button>
+               class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Logout</button>
           </div>
         </template>
-
       </div>
     </div>
   </nav>
@@ -126,7 +108,6 @@
 
     <h1 class="text-4xl font-bold text-center mb-10">My Account</h1>
 
-    <!-- ACCOUNT INFO -->
     <div class="bg-gray-800 p-8 rounded-xl shadow-xl">
 
       <template x-if="loaded">
@@ -142,7 +123,7 @@
             <p class="text-gray-400">Username</p>
             <input class="w-full p-3 mt-2 rounded bg-gray-700"
                    x-model="username">
-            <p class="text-sm text-gray-500 mt-1">Letters and numbers only — no spaces.</p>
+            <p class="text-sm text-gray-500 mt-1">Letters & numbers only.</p>
           </div>
 
           <div class="mb-8">
@@ -185,33 +166,38 @@
         newPassword: "",
         msg: "",
         err: false,
-        docId: null,
 
         validateUsername(name) {
           return /^[a-zA-Z0-9]+$/.test(name);
         },
 
-        async init() {
-          if (!window.currentUser) {
-            window.location.href = "/login.html";
-            return;
-          }
+        // ⭐ FIXED AUTH HANDLING
+        init() {
+          window.auth.onAuthStateChanged(async user => {
+            if (!user) {
+              window.location.href = "/login.html";
+              return;
+            }
 
+            window.currentUser = user;
+            await this.loadAccount();
+          });
+        },
+
+        async loadAccount() {
           const { doc, getDoc } = window.FS;
 
           const userDoc = await getDoc(doc(window.db, "users", window.currentUser.uid));
 
           if (!userDoc.exists()) {
-            this.msg = "User record not found.";
+            this.msg = "Account record missing.";
             this.err = true;
             return;
           }
 
           const data = userDoc.data();
-
           this.realName = data.realName;
           this.username = data.username;
-          this.docId = userDoc.id;
 
           this.loaded = true;
         },
@@ -221,7 +207,7 @@
           this.err = false;
 
           if (!this.validateUsername(this.username)) {
-            this.msg = "Username may only contain letters & numbers.";
+            this.msg = "Username must only contain letters & numbers.";
             this.err = true;
             return;
           }
@@ -229,20 +215,16 @@
           const { doc, updateDoc, updatePassword } = window.FS;
 
           try {
-            // Update Firestore profile
             await updateDoc(doc(window.db, "users", window.currentUser.uid), {
               realName: this.realName,
               username: this.username
             });
 
-            // Update password if provided
             if (this.newPassword.length > 0) {
               await updatePassword(window.currentUser, this.newPassword);
             }
 
-            this.msg = "Profile updated successfully!";
-            this.err = false;
-
+            this.msg = "Account updated successfully!";
           } catch (e) {
             this.msg = e.message;
             this.err = true;
@@ -262,21 +244,16 @@
               collection(window.db, "sessions"),
               where("userId", "==", window.currentUser.uid)
             );
-
             const snap = await getDocs(q);
             for (const d of snap.docs) {
               await deleteDoc(doc(window.db, "sessions", d.id));
             }
 
-            // Delete user Firestore record
             await deleteDoc(doc(window.db, "users", window.currentUser.uid));
-
-            // Delete Auth user
             await deleteUser(window.currentUser);
 
             alert("Account deleted.");
             window.location.href = "/index.html";
-
           } catch (e) {
             this.msg = e.message;
             this.err = true;

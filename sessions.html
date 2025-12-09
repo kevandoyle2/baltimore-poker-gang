@@ -13,12 +13,12 @@
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { 
-      getAuth, 
-      onAuthStateChanged, 
-      signOut 
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signOut
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { 
+    import {
       getFirestore,
       collection,
       addDoc,
@@ -31,7 +31,7 @@
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
+      apiKey: "AIzaSyCKS9PstXhK_9lVW6IRkCAJ_Gl0G8XlUw",
       authDomain: "baltimore-poker-gang.firebaseapp.com",
       projectId: "baltimore-poker-gang",
       storageBucket: "baltimore-poker-gang.appspot.com",
@@ -51,14 +51,13 @@
       window.location.href = "/index.html";
     };
 
+    // Firestore utilities
+    window.FS = { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc };
+
     onAuthStateChanged(auth, user => {
       window.currentUser = user;
       window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
     });
-
-    window.FirestoreAPI = {
-      collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc
-    };
   </script>
 </head>
 
@@ -66,7 +65,7 @@
       x-data="sessionsPage()"
       x-init="init()">
 
-  <!-- NAVIGATION BAR -->
+  <!-- NAVBAR (unchanged) -->
   <nav class="bg-black p-4 shadow-lg"
        x-data="{ user: null }"
        x-init="
@@ -74,55 +73,31 @@
          user = window.currentUser;
        ">
     <div class="max-w-6xl mx-auto flex justify-between items-center">
-
       <a href="/index.html" class="text-2xl font-bold flex items-center gap-3">
         <i class="fas fa-diamond text-red-600"></i> Baltimore Poker Gang
       </a>
-
       <div class="flex gap-4">
-
-        <!-- LOGGED OUT -->
         <template x-if="!user">
           <div class="flex gap-4">
             <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
-               Leaderboard
-            </a>
-
+               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
             <a href="/login.html"
-               class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">
-               Login / Sign Up
-            </a>
+               class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">Login / Sign Up</a>
           </div>
         </template>
 
-        <!-- LOGGED IN -->
         <template x-if="user">
           <div class="flex gap-4">
-
             <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
-               Leaderboard
-            </a>
-
+               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
             <a href="/sessions.html"
-               class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">
-               Sessions
-            </a>
-
+               class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Sessions</a>
             <a href="/account.html"
-               class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">
-               My Account
-            </a>
-
+               class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">My Account</a>
             <button @click="logout()"
-               class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">
-               Logout
-            </button>
-
+               class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Logout</button>
           </div>
         </template>
-
       </div>
     </div>
   </nav>
@@ -143,12 +118,10 @@
       </div>
 
       <button @click="addSession()"
-              class="mt-4 px-6 py-3 bg-green-600 hover:bg-green-500 rounded font-bold">
-        Add Session
-      </button>
+              class="mt-4 px-6 py-3 bg-green-600 hover:bg-green-500 rounded font-bold">Add Session</button>
     </div>
 
-    <!-- SESSION LIST -->
+    <!-- SESSION TABLE -->
     <div class="bg-gray-800 rounded-xl overflow-hidden shadow-xl">
       <h3 class="text-2xl font-bold p-6 bg-gray-900">Session History</h3>
 
@@ -158,7 +131,7 @@
             <th class="p-4 text-left">Date</th>
             <th class="p-4 text-left">Buy-in</th>
             <th class="p-4 text-left">Cash-out</th>
-            <th class="p-4 text-left">Profit/Loss</th>
+            <th class="p-4 text-left">Profit</th>
             <th class="p-4 text-left">Actions</th>
           </tr>
         </thead>
@@ -176,10 +149,8 @@
               </td>
 
               <td class="p-4 space-x-4">
-                <button @click="openEdit(s)"
-                        class="text-yellow-400 hover:text-yellow-300">Edit</button>
-                <button @click="removeSession(s.id)"
-                        class="text-red-400 hover:text-red-300">Delete</button>
+                <button @click="openEdit(s)" class="text-yellow-400 hover:text-yellow-300">Edit</button>
+                <button @click="removeSession(s.id)" class="text-red-400 hover:text-red-300">Delete</button>
               </td>
             </tr>
           </template>
@@ -201,7 +172,7 @@
           <p class="text-2xl">$<span x-text="totalCashout"></span></p>
         </div>
         <div>
-          <p class="text-gray-400">Net Result</p>
+          <p class="text-gray-400">Net</p>
           <p class="text-3xl font-bold"
              :class="net >= 0 ? 'text-green-400' : 'text-red-400'">
             $<span x-text="net.toFixed(2)"></span>
@@ -250,17 +221,21 @@
         editSession: {},
         editId: null,
 
-        async init() {
-          if (!window.currentUser) {
-            window.location.href = "/login.html";
-            return;
-          }
+        // ⭐ FIXED AUTH HANDLING
+        init() {
+          window.auth.onAuthStateChanged(async user => {
+            if (!user) {
+              window.location.href = "/login.html";
+              return;
+            }
 
-          await this.loadSessions();
+            window.currentUser = user;
+            await this.loadSessions();
+          });
         },
 
         async loadSessions() {
-          const { collection, getDocs, query, where } = window.FirestoreAPI;
+          const { collection, getDocs, query, where } = window.FS;
 
           const q = query(
             collection(window.db, "sessions"),
@@ -275,7 +250,7 @@
         },
 
         async addSession() {
-          const { collection, addDoc } = window.FirestoreAPI;
+          const { collection, addDoc } = window.FS;
 
           await addDoc(collection(window.db, "sessions"), {
             ...this.newSession,
@@ -283,7 +258,6 @@
             username: window.currentUser.displayName || "Unknown"
           });
 
-          // Reset form
           this.newSession = {
             date: new Date().toISOString().split('T')[0],
             buyin: 0,
@@ -300,7 +274,7 @@
         },
 
         async saveEdit() {
-          const { doc, updateDoc } = window.FirestoreAPI;
+          const { doc, updateDoc } = window.FS;
 
           await updateDoc(doc(window.db, "sessions", this.editId), {
             date: this.editSession.date,
@@ -313,7 +287,7 @@
         },
 
         async removeSession(id) {
-          const { doc, deleteDoc } = window.FirestoreAPI;
+          const { doc, deleteDoc } = window.FS;
 
           await deleteDoc(doc(window.db, "sessions", id));
           await this.loadSessions();
