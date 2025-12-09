@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900 text-white">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sessions — Baltimore Poker Gang</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { 
+      getAuth, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { 
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      query,
+      where,
+      doc,
+      updateDoc,
+      deleteDoc
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
+      authDomain: "baltimore-poker-gang.firebaseapp.com",
+      projectId: "baltimore-poker-gang",
+      storageBucket: "baltimore-poker-gang.appspot.com",
+      messagingSenderId: "1082334625118",
+      appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.auth = auth;
+    window.db = db;
+
+    window.logout = async () => {
+      await signOut(auth);
+      window.location.href = "/index.html";
+    };
+
+    onAuthStateChanged(auth, user => {
+      window.currentUser = user;
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+    });
+
+    window.FirestoreAPI = {
+      collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc
+    };
+  </script>
+</head>
+
+<body class="min-h-screen bg-gray-900"
+      x-data="sessionsPage()"
+      x-init="init()">
+
+  <!-- NAVIGATION BAR -->
+  <nav class="bg-black p-4 shadow-lg"
+       x-data="{ user: null }"
+       x-init="
+         window.addEventListener('auth-changed', e => user = e.detail);
+         user = window.currentUser;
+       ">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+
+      <a href="/index.html" class="text-2xl font-bold flex items-center gap-3">
+        <i class="fas fa-diamond text-red-600"></i> Baltimore Poker Gang
+      </a>
+
+      <div class="flex gap-4">
+
+        <!-- LOGGED OUT -->
+        <template x-if="!user">
+          <div class="flex gap-4">
+            <a href="/leaderboard.html"
+               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
+               Leaderboard
+            </a>
+
+            <a href="/login.html"
+               class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">
+               Login / Sign Up
+            </a>
+          </div>
+        </template>
+
+        <!-- LOGGED IN -->
+        <template x-if="user">
+          <div class="flex gap-4">
+
+            <a href="/leaderboard.html"
+               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
+               Leaderboard
+            </a>
+
+            <a href="/sessions.html"
+               class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">
+               Sessions
+            </a>
+
+            <a href="/account.html"
+               class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">
+               My Account
+            </a>
+
+            <button @click="logout()"
+               class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">
+               Logout
+            </button>
+
+          </div>
+        </template>
+
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="max-w-4xl mx-auto p-6">
+
+    <h1 class="text-4xl font-bold text-center mb-10">Your Sessions</h1>
+
+    <!-- ADD SESSION -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-10">
+      <h2 class="text-2xl font-bold mb-4">Log a Session</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input type="date" x-model="newSession.date" class="p-3 rounded bg-gray-700" />
+        <input type="number" x-model.number="newSession.buyin" placeholder="Buy-in ($)" class="p-3 rounded bg-gray-700" />
+        <input type="number" x-model.number="newSession.cashout" placeholder="Cash-out ($)" class="p-3 rounded bg-gray-700" />
+      </div>
+
+      <button @click="addSession()"
+              class="mt-4 px-6 py-3 bg-green-600 hover:bg-green-500 rounded font-bold">
+        Add Session
+      </button>
+    </div>
+
+    <!-- SESSION LIST -->
+    <div class="bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+      <h3 class="text-2xl font-bold p-6 bg-gray-900">Session History</h3>
+
+      <table class="w-full">
+        <thead class="bg-gray-900">
+          <tr>
+            <th class="p-4 text-left">Date</th>
+            <th class="p-4 text-left">Buy-in</th>
+            <th class="p-4 text-left">Cash-out</th>
+            <th class="p-4 text-left">Profit/Loss</th>
+            <th class="p-4 text-left">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <template x-for="s in sessions" :key="s.id">
+            <tr class="border-t border-gray-700 hover:bg-gray-800">
+              <td class="p-4" x-text="s.date"></td>
+              <td class="p-4">$<span x-text="s.buyin"></span></td>
+              <td class="p-4">$<span x-text="s.cashout"></span></td>
+
+              <td class="p-4 font-bold"
+                  :class="(s.cashout - s.buyin) >= 0 ? 'text-green-400' : 'text-red-400'">
+                $<span x-text="(s.cashout - s.buyin).toFixed(2)"></span>
+              </td>
+
+              <td class="p-4 space-x-4">
+                <button @click="openEdit(s)"
+                        class="text-yellow-400 hover:text-yellow-300">Edit</button>
+                <button @click="removeSession(s.id)"
+                        class="text-red-400 hover:text-red-300">Delete</button>
+              </td>
+            </tr>
+          </template>
+
+          <tr x-show="sessions.length === 0">
+            <td colspan="5" class="p-8 text-center text-gray-400">No sessions logged yet.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- TOTALS -->
+      <div class="p-6 bg-gray-900 border-t border-gray-700 grid grid-cols-3 text-center">
+        <div>
+          <p class="text-gray-400">Total Buy-ins</p>
+          <p class="text-2xl">$<span x-text="totalBuyin"></span></p>
+        </div>
+        <div>
+          <p class="text-gray-400">Total Cash-outs</p>
+          <p class="text-2xl">$<span x-text="totalCashout"></span></p>
+        </div>
+        <div>
+          <p class="text-gray-400">Net Result</p>
+          <p class="text-3xl font-bold"
+             :class="net >= 0 ? 'text-green-400' : 'text-red-400'">
+            $<span x-text="net.toFixed(2)"></span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div x-show="editOpen"
+       class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center"
+       x-transition>
+    <div class="bg-gray-800 p-6 rounded-xl w-full max-w-lg">
+
+      <h2 class="text-2xl font-bold mb-4">Edit Session</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input type="date" x-model="editSession.date" class="p-3 rounded bg-gray-700" />
+        <input type="number" x-model.number="editSession.buyin" class="p-3 rounded bg-gray-700" />
+        <input type="number" x-model.number="editSession.cashout" class="p-3 rounded bg-gray-700" />
+      </div>
+
+      <div class="mt-6 flex justify-end gap-4">
+        <button @click="editOpen = false"
+                class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Cancel</button>
+
+        <button @click="saveEdit()"
+                class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Save</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function sessionsPage() {
+      return {
+        sessions: [],
+        newSession: {
+          date: new Date().toISOString().split('T')[0],
+          buyin: 0,
+          cashout: 0
+        },
+
+        editOpen: false,
+        editSession: {},
+        editId: null,
+
+        async init() {
+          if (!window.currentUser) {
+            window.location.href = "/login.html";
+            return;
+          }
+
+          await this.loadSessions();
+        },
+
+        async loadSessions() {
+          const { collection, getDocs, query, where } = window.FirestoreAPI;
+
+          const q = query(
+            collection(window.db, "sessions"),
+            where("userId", "==", window.currentUser.uid)
+          );
+
+          const snap = await getDocs(q);
+          this.sessions = snap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+        },
+
+        async addSession() {
+          const { collection, addDoc } = window.FirestoreAPI;
+
+          await addDoc(collection(window.db, "sessions"), {
+            ...this.newSession,
+            userId: window.currentUser.uid,
+            username: window.currentUser.displayName || "Unknown"
+          });
+
+          // Reset form
+          this.newSession = {
+            date: new Date().toISOString().split('T')[0],
+            buyin: 0,
+            cashout: 0
+          };
+
+          await this.loadSessions();
+        },
+
+        openEdit(s) {
+          this.editSession = { ...s };
+          this.editId = s.id;
+          this.editOpen = true;
+        },
+
+        async saveEdit() {
+          const { doc, updateDoc } = window.FirestoreAPI;
+
+          await updateDoc(doc(window.db, "sessions", this.editId), {
+            date: this.editSession.date,
+            buyin: this.editSession.buyin,
+            cashout: this.editSession.cashout
+          });
+
+          this.editOpen = false;
+          await this.loadSessions();
+        },
+
+        async removeSession(id) {
+          const { doc, deleteDoc } = window.FirestoreAPI;
+
+          await deleteDoc(doc(window.db, "sessions", id));
+          await this.loadSessions();
+        },
+
+        get totalBuyin() {
+          return this.sessions.reduce((sum, s) => sum + s.buyin, 0);
+        },
+
+        get totalCashout() {
+          return this.sessions.reduce((sum, s) => sum + s.cashout, 0);
+        },
+
+        get net() {
+          return this.totalCashout - this.totalBuyin;
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>

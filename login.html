@@ -2,11 +2,13 @@
 <html lang="en" class="h-full bg-gray-900 text-white">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — Baltimore Poker Gang</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Firebase SDK -->
   <script type="module">
@@ -14,7 +16,9 @@
     import { 
       getAuth, 
       createUserWithEmailAndPassword, 
-      signInWithEmailAndPassword 
+      signInWithEmailAndPassword,
+      onAuthStateChanged,
+      updatePassword
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import { 
       getFirestore, 
@@ -28,45 +32,122 @@
       projectId: "baltimore-poker-gang",
       storageBucket: "baltimore-poker-gang.appspot.com",
       messagingSenderId: "1082334625118",
-      appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf",
-      measurementId: "G-WG9B6920WS"
+      appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Expose globally for Alpine
     window.auth = auth;
     window.db = db;
     window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
     window.signInWithEmailAndPassword = signInWithEmailAndPassword;
     window.setDoc = setDoc;
     window.doc = doc;
+    window.updatePassword = updatePassword;
+
+    window.logout = async () => {
+      await auth.signOut();
+      window.location.href = "/index.html";
+    };
+
+    onAuthStateChanged(auth, user => {
+      window.currentUser = user;
+      window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+    });
   </script>
 </head>
 
-<body class="h-full flex items-center justify-center" x-data="loginPage()">
+<body class="min-h-screen flex flex-col items-center justify-start bg-gray-900">
 
-  <div class="bg-gray-800 p-10 rounded-2xl shadow-2xl w-full max-w-md">
+  <!-- NAVIGATION BAR -->
+  <nav class="bg-black p-4 shadow-lg w-full"
+       x-data="{ user: null }"
+       x-init="
+         window.addEventListener('auth-changed', e => user = e.detail);
+         user = window.currentUser;
+       ">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+
+      <a href="/index.html" class="text-2xl font-bold flex items-center gap-3">
+        <i class="fas fa-diamond text-red-600"></i> Baltimore Poker Gang
+      </a>
+
+      <div class="flex gap-4">
+
+        <!-- LOGGED OUT -->
+        <template x-if="!user">
+          <div class="flex gap-4">
+            <a href="/leaderboard.html"
+               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
+              Leaderboard
+            </a>
+            <a href="/login.html"
+               class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">
+              Login / Sign Up
+            </a>
+          </div>
+        </template>
+
+        <!-- LOGGED IN -->
+        <template x-if="user">
+          <div class="flex gap-4">
+            <a href="/leaderboard.html"
+               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
+              Leaderboard
+            </a>
+            <a href="/sessions.html"
+               class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">
+              Sessions
+            </a>
+            <a href="/account.html"
+               class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">
+              My Account
+            </a>
+            <button @click="logout()"
+               class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">
+              Logout
+            </button>
+          </div>
+        </template>
+
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN AUTH UI -->
+  <div class="bg-gray-800 p-10 rounded-2xl shadow-2xl w-full max-w-md mt-10"
+       x-data="authPage()">
+
     <h2 class="text-4xl font-bold text-center mb-8">Baltimore Poker Gang</h2>
 
-    <!-- SIGN UP FORM -->
+    <!-- SIGNUP FORM -->
     <template x-if="!isLogin">
       <div>
         <h3 class="text-2xl mb-6 text-center">Create Account</h3>
 
-        <input x-model="realName" placeholder="Full Name" class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
-        <input x-model="username" placeholder="Username (letters & numbers only)" class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
-        <input type="password" x-model="password" placeholder="Password" class="w-full p-4 mb-6 bg-gray-700 rounded-lg" />
+        <input x-model="realName"
+               placeholder="Full Name"
+               class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
 
-        <button @click="signup()" class="w-full bg-red-600 hover:bg-red-500 py-4 rounded-lg font-bold">
+        <input x-model="username"
+               placeholder="Username (letters & numbers only)"
+               class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
+
+        <input x-model="password"
+               type="password"
+               placeholder="Password"
+               class="w-full p-4 mb-6 bg-gray-700 rounded-lg" />
+
+        <button @click="signup()"
+                class="w-full bg-red-600 hover:bg-red-500 py-4 rounded-lg font-bold">
           Sign Up
         </button>
 
         <p class="text-center mt-4 text-gray-400">
           Have an account?
-          <button @click="isLogin = true" class="text-red-400">Login</button>
+          <button class="text-red-400" @click="isLogin = true">Login</button>
         </p>
       </div>
     </template>
@@ -76,40 +157,48 @@
       <div>
         <h3 class="text-2xl mb-6 text-center">Welcome Back</h3>
 
-        <input x-model="username" placeholder="Username" class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
-        <input type="password" x-model="password" placeholder="Password" class="w-full p-4 mb-6 bg-gray-700 rounded-lg" />
+        <input x-model="username"
+               placeholder="Username"
+               class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
 
-        <button @click="login()" class="w-full bg-green-600 hover:bg-green-500 py-4 rounded-lg font-bold">
+        <input x-model="password"
+               type="password"
+               placeholder="Password"
+               class="w-full p-4 mb-6 bg-gray-700 rounded-lg" />
+
+        <button @click="login()"
+                class="w-full bg-green-600 hover:bg-green-500 py-4 rounded-lg font-bold">
           Login
         </button>
 
         <p class="text-center mt-4 text-gray-400">
           No account?
-          <button @click="isLogin = false" class="text-red-400">Sign Up</button>
+          <button class="text-red-400" @click="isLogin = false">Sign Up</button>
         </p>
       </div>
     </template>
 
-    <div x-show="msg" :class="err ? 'text-red-400' : 'text-green-400'" class="mt-4 text-center" x-text="msg"></div>
+    <div x-show="msg"
+         :class="err ? 'text-red-400' : 'text-green-400'"
+         class="mt-4 text-center"
+         x-text="msg">
+    </div>
   </div>
 
   <script>
-    function loginPage() {
+    function authPage() {
       return {
         isLogin: true,
-        realName: '',
-        username: '',
-        password: '',
-        msg: '',
+        realName: "",
+        username: "",
+        password: "",
+        msg: "",
         err: false,
 
-        // Validate usernames BEFORE signup
         validateUsername(name) {
-          const valid = /^[a-zA-Z0-9]+$/.test(name);
-          return valid;
+          return /^[a-zA-Z0-9]+$/.test(name);
         },
 
-        // CREATE ACCOUNT
         async signup() {
           if (!this.realName || !this.username || !this.password) {
             this.msg = "Please fill out all fields.";
@@ -118,31 +207,30 @@
           }
 
           if (!this.validateUsername(this.username)) {
-            this.msg = "Usernames may only contain letters and numbers — no spaces or special characters.";
+            this.msg = "Username can only contain letters and numbers — no spaces.";
             this.err = true;
             return;
           }
 
-          const safeUsername = this.username.toLowerCase();
-          const fakeEmail = `${safeUsername}@bpg.com`;
+          const email = `${this.username.toLowerCase()}@bpg.com`;
 
           try {
-            const cred = await createUserWithEmailAndPassword(auth, fakeEmail, this.password);
+            const cred = await createUserWithEmailAndPassword(window.auth, email, this.password);
 
             await setDoc(doc(window.db, "users", cred.user.uid), {
               uid: cred.user.uid,
-              username: this.username,
-              realName: this.realName
+              realName: this.realName,
+              username: this.username
             });
 
             window.location.href = "/account.html";
+
           } catch (e) {
             this.msg = e.message;
             this.err = true;
           }
         },
 
-        // LOGIN
         async login() {
           if (!this.validateUsername(this.username)) {
             this.msg = "Invalid username format.";
@@ -150,14 +238,14 @@
             return;
           }
 
-          const safeUsername = this.username.toLowerCase();
-          const fakeEmail = `${safeUsername}@bpg.com`;
+          const email = `${this.username.toLowerCase()}@bpg.com`;
 
           try {
-            await signInWithEmailAndPassword(auth, fakeEmail, this.password);
+            await signInWithEmailAndPassword(window.auth, email, this.password);
             window.location.href = "/account.html";
+
           } catch (e) {
-            this.msg = "Wrong username or password";
+            this.msg = "Wrong username or password.";
             this.err = true;
           }
         }
