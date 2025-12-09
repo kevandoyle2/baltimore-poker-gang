@@ -1,36 +1,31 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-gray-900 text-white">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sessions — Baltimore Poker Gang</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
-  <!-- UPDATED FIREBASE INITIALIZER -->
+  <!-- FIREBASE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import {
-      getAuth,
-      onAuthStateChanged,
-      signOut,
-      updatePassword,
-      deleteUser
+      getAuth, onAuthStateChanged, signOut
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import {
-      getFirestore,
-      doc, getDoc, updateDoc, deleteDoc,
+      getFirestore, doc, getDoc, updateDoc, deleteDoc,
       collection, getDocs, query, where, addDoc
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCKS9PstXhK_9lVW6IRkCAJ_Gl0G8XlUw",
+      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
       authDomain: "baltimore-poker-gang.firebaseapp.com",
       projectId: "baltimore-poker-gang",
-      storageBucket: "baltimore-poker-gang.firebasestorage.app",
+      storageBucket: "baltimore-poker-gang.appspot.com",
       messagingSenderId: "1082334625118",
       appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
     };
@@ -52,26 +47,26 @@
       location.href = "/index.html";
     };
 
-    // ⭐ GUARANTEED EVENT DELIVERY SYSTEM
     let alpineReady = false;
     window.addEventListener("alpine:init", () => {
       alpineReady = true;
-
-      if (window.currentUser !== undefined) {
+      if (window.currentUser !== undefined)
         window.dispatchEvent(new CustomEvent("auth-changed", { detail: window.currentUser }));
-      }
     });
 
     onAuthStateChanged(auth, user => {
       window.currentUser = user;
 
-      if (alpineReady) {
-        window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
-      } else {
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
-        }, 50);
+      if (!user) {
+        location.href = "/login.html";
+        return;
       }
+
+      if (alpineReady)
+        window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+      else
+        setTimeout(() =>
+          window.dispatchEvent(new CustomEvent("auth-changed", { detail: user })), 50);
     });
   </script>
 </head>
@@ -93,34 +88,26 @@
       </a>
 
       <div class="flex gap-4">
-        <!-- Logged OUT -->
         <template x-if="!user">
           <div class="flex gap-4">
-            <a href="/leaderboard.html"
-              class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
-            <a href="/login.html"
-              class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">Login / Sign Up</a>
+            <a href="/leaderboard.html" class="px-6 py-2 bg-blue-600 rounded">Leaderboard</a>
+            <a href="/login.html" class="px-6 py-2 bg-red-600 rounded">Login / Sign Up</a>
           </div>
         </template>
 
-        <!-- Logged IN -->
         <template x-if="user">
           <div class="flex gap-4">
-            <a href="/leaderboard.html"
-              class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
-            <a href="/sessions.html"
-              class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Sessions</a>
-            <a href="/account.html"
-              class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">My Account</a>
-            <button @click="logout()"
-              class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Logout</button>
+            <a href="/leaderboard.html" class="px-6 py-2 bg-blue-600 rounded">Leaderboard</a>
+            <a href="/sessions.html" class="px-6 py-2 bg-green-600 rounded">Sessions</a>
+            <a href="/account.html" class="px-6 py-2 bg-yellow-600 rounded">My Account</a>
+            <button @click="logout()" class="px-6 py-2 bg-gray-700 rounded">Logout</button>
           </div>
         </template>
       </div>
     </div>
   </nav>
 
-  <!-- SESSIONS CONTENT -->
+  <!-- CONTENT -->
   <div class="max-w-4xl mx-auto p-6">
 
     <h1 class="text-4xl font-bold text-center mb-10">Your Sessions</h1>
@@ -130,18 +117,23 @@
       <h2 class="text-2xl font-bold mb-4">Log a Session</h2>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <input type="date" x-model="newSession.date" class="p-3 rounded bg-gray-700" />
-        <input type="number" x-model.number="newSession.buyin" placeholder="Buy-in"
-               class="p-3 rounded bg-gray-700" />
-        <input type="number" x-model.number="newSession.cashout" placeholder="Cash-out"
-               class="p-3 rounded bg-gray-700" />
+        <input type="date" class="p-3 rounded bg-gray-700"
+               x-model="newSession.date"/>
+
+        <input type="number" class="p-3 rounded bg-gray-700"
+               placeholder="Buy-in" x-model.number="newSession.buyin"/>
+
+        <input type="number" class="p-3 rounded bg-gray-700"
+               placeholder="Cash-out" x-model.number="newSession.cashout"/>
       </div>
 
       <button @click="addSession()"
-              class="mt-4 px-6 py-3 bg-green-600 hover:bg-green-500 rounded font-bold">Add Session</button>
+              class="mt-4 px-6 py-3 bg-green-600 rounded font-bold">
+        Add Session
+      </button>
     </div>
 
-    <!-- SESSIONS TABLE -->
+    <!-- HISTORY -->
     <div class="bg-gray-800 rounded-xl overflow-hidden shadow-xl">
 
       <h3 class="text-2xl font-bold p-6 bg-gray-900">Session History</h3>
@@ -160,24 +152,32 @@
         <tbody>
           <template x-for="s in sessions" :key="s.id">
             <tr class="border-t border-gray-700 hover:bg-gray-800">
+
               <td class="p-4" x-text="s.date"></td>
               <td class="p-4">$<span x-text="s.buyin"></span></td>
               <td class="p-4">$<span x-text="s.cashout"></span></td>
+
               <td class="p-4 font-bold"
                   :class="(s.cashout - s.buyin) >= 0 ? 'text-green-400' : 'text-red-400'">
                 $<span x-text="(s.cashout - s.buyin).toFixed(2)"></span>
               </td>
 
               <td class="p-4 space-x-4">
-                <button @click="openEdit(s)" class="text-yellow-400 hover:text-yellow-300">Edit</button>
-                <button @click="removeSession(s.id)" class="text-red-400 hover:text-red-300">Delete</button>
+                <button class="text-yellow-400"
+                        @click="openEdit(s)">Edit</button>
+                <button class="text-red-400"
+                        @click="removeSession(s.id)">Delete</button>
               </td>
+
             </tr>
           </template>
 
           <tr x-show="sessions.length === 0">
-            <td colspan="5" class="p-8 text-center text-gray-400">No sessions logged yet.</td>
+            <td colspan="5" class="p-8 text-center text-gray-400">
+              No sessions logged.
+            </td>
           </tr>
+
         </tbody>
       </table>
 
@@ -187,18 +187,20 @@
           <p class="text-gray-400">Total Buy-ins</p>
           <p class="text-2xl" x-text="'$' + totalBuyin"></p>
         </div>
+
         <div>
           <p class="text-gray-400">Total Cash-outs</p>
           <p class="text-2xl" x-text="'$' + totalCashout"></p>
         </div>
+
         <div>
           <p class="text-gray-400">Net</p>
           <p class="text-3xl font-bold"
              :class="net >= 0 ? 'text-green-400' : 'text-red-400'"
-             x-text="'$' + net.toFixed(2)">
-          </p>
+             x-text="'$' + net.toFixed(2)"></p>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -211,29 +213,35 @@
       <h2 class="text-2xl font-bold mb-4">Edit Session</h2>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <input type="date" x-model="editSession.date" class="p-3 rounded bg-gray-700" />
-        <input type="number" x-model.number="editSession.buyin" class="p-3 rounded bg-gray-700" />
-        <input type="number" x-model.number="editSession.cashout" class="p-3 rounded bg-gray-700" />
+        <input type="date" class="p-3 rounded bg-gray-700"
+               x-model="editSession.date"/>
+        <input type="number" class="p-3 rounded bg-gray-700"
+               x-model.number="editSession.buyin"/>
+        <input type="number" class="p-3 rounded bg-gray-700"
+               x-model.number="editSession.cashout"/>
       </div>
 
       <div class="mt-6 flex justify-end gap-4">
         <button @click="editOpen = false"
-          class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Cancel</button>
-
+                class="px-6 py-2 bg-gray-700 rounded font-bold">
+          Cancel
+        </button>
         <button @click="saveEdit()"
-          class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Save</button>
+                class="px-6 py-2 bg-green-600 rounded font-bold">
+          Save
+        </button>
       </div>
 
     </div>
   </div>
 
-  <!-- MAIN JS FOR PAGE -->
+  <!-- PAGE JS -->
   <script>
     function sessionsPage() {
       return {
         sessions: [],
         newSession: {
-          date: new Date().toISOString().split('T')[0],
+          date: new Date().toISOString().split("T")[0],
           buyin: 0,
           cashout: 0
         },
@@ -244,41 +252,39 @@
 
         init() {
           window.auth.onAuthStateChanged(async user => {
-            if (!user) {
-              location.href = "/login.html";
-              return;
-            }
-
+            if (!user) { location.href = "/login.html"; return; }
             await this.loadSessions();
           });
         },
 
         async loadSessions() {
-          const { collection, getDocs, query, where } = window.FS;
-
-          const q = query(
-            collection(window.db, "sessions"),
-            where("userId", "==", window.currentUser.uid)
+          const q = window.FS.query(
+            window.FS.collection(window.db, "sessions"),
+            window.FS.where("userId", "==", window.currentUser.uid)
           );
 
-          const snap = await getDocs(q);
-          this.sessions = snap.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
+          const snap = await window.FS.getDocs(q);
+
+          this.sessions = snap.docs.map(d => ({
+            id: d.id,
+            ...d.data()
           }));
         },
 
         async addSession() {
-          const { collection, addDoc } = window.FS;
-
-          await addDoc(collection(window.db, "sessions"), {
-            ...this.newSession,
-            userId: window.currentUser.uid,
-            username: window.currentUser.displayName || "Unknown"
-          });
+          await window.FS.addDoc(
+            window.FS.collection(window.db, "sessions"),
+            {
+              ...this.newSession,
+              userId: window.currentUser.uid,
+              username: (await window.FS.getDoc(
+                window.FS.doc(window.db, "users", window.currentUser.uid)
+              )).data().username
+            }
+          );
 
           this.newSession = {
-            date: new Date().toISOString().split('T')[0],
+            date: new Date().toISOString().split("T")[0],
             buyin: 0,
             cashout: 0
           };
@@ -287,43 +293,44 @@
         },
 
         openEdit(s) {
-          this.editSession = { ...s };
           this.editId = s.id;
+          this.editSession = { ...s };
           this.editOpen = true;
         },
 
         async saveEdit() {
-          const { doc, updateDoc } = window.FS;
-
-          await updateDoc(doc(window.db, "sessions", this.editId), {
-            date: this.editSession.date,
-            buyin: this.editSession.buyin,
-            cashout: this.editSession.cashout
-          });
+          await window.FS.updateDoc(
+            window.FS.doc(window.db, "sessions", this.editId),
+            {
+              date: this.editSession.date,
+              buyin: this.editSession.buyin,
+              cashout: this.editSession.cashout
+            }
+          );
 
           this.editOpen = false;
           await this.loadSessions();
         },
 
         async removeSession(id) {
-          const { doc, deleteDoc } = window.FS;
-
-          await deleteDoc(doc(window.db, "sessions", id));
+          await window.FS.deleteDoc(
+            window.FS.doc(window.db, "sessions", id)
+          );
           await this.loadSessions();
         },
 
         get totalBuyin() {
-          return this.sessions.reduce((sum, s) => sum + s.buyin, 0);
+          return this.sessions.reduce((s, x) => s + x.buyin, 0);
         },
 
         get totalCashout() {
-          return this.sessions.reduce((sum, s) => sum + s.cashout, 0);
+          return this.sessions.reduce((s, x) => s + x.cashout, 0);
         },
 
         get net() {
           return this.totalCashout - this.totalBuyin;
         }
-      }
+      };
     }
   </script>
 

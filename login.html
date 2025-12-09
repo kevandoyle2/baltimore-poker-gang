@@ -10,27 +10,28 @@
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <!-- Firebase SDK -->
+  <!-- FIREBASE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { 
-      getAuth, 
-      createUserWithEmailAndPassword, 
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
       signInWithEmailAndPassword,
       onAuthStateChanged,
-      updatePassword
+      signOut
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { 
-      getFirestore, 
-      setDoc, 
-      doc 
+
+    import {
+      getFirestore,
+      setDoc,
+      doc
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
       authDomain: "baltimore-poker-gang.firebaseapp.com",
       projectId: "baltimore-poker-gang",
-      storageBucket: "baltimore-poker-gang.firebasestorage.app",
+      storageBucket: "baltimore-poker-gang.appspot.com",
       messagingSenderId: "1082334625118",
       appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
     };
@@ -45,29 +46,41 @@
     window.signInWithEmailAndPassword = signInWithEmailAndPassword;
     window.setDoc = setDoc;
     window.doc = doc;
-    window.updatePassword = updatePassword;
 
     window.logout = async () => {
-      await auth.signOut();
-      window.location.href = "/index.html";
+      await signOut(auth);
+      location.href = "/index.html";
     };
+
+    let alpineReady = false;
+    window.addEventListener("alpine:init", () => {
+      alpineReady = true;
+      if (window.currentUser !== undefined) {
+        window.dispatchEvent(new CustomEvent("auth-changed", { detail: window.currentUser }));
+      }
+    });
 
     onAuthStateChanged(auth, user => {
       window.currentUser = user;
-      window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+
+      // OPTION A — redirect if already logged in
+      if (user && location.pathname.includes("login")) {
+        location.href = "/account.html";
+      }
+
+      if (alpineReady) {
+        window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+      } else {
+        setTimeout(() =>
+          window.dispatchEvent(new CustomEvent("auth-changed", { detail: user })), 50);
+      }
     });
   </script>
 </head>
 
-<script>
-  window.addEventListener("auth-changed", e => {
-    console.log("AUTH STATE CHANGED:", e.detail);
-  });
-</script>
+<body class="min-h-screen flex flex-col items-center bg-gray-900">
 
-<body class="min-h-screen flex flex-col items-center justify-start bg-gray-900">
-
-  <!-- NAVIGATION BAR -->
+  <!-- NAVBAR -->
   <nav class="bg-black p-4 shadow-lg w-full"
        x-data="{ user: null }"
        x-init="
@@ -75,79 +88,51 @@
          user = window.currentUser;
        ">
     <div class="max-w-6xl mx-auto flex justify-between items-center">
-
       <a href="/index.html" class="text-2xl font-bold flex items-center gap-3">
         <i class="fas fa-diamond text-red-600"></i> Baltimore Poker Gang
       </a>
 
       <div class="flex gap-4">
-
-        <!-- LOGGED OUT -->
         <template x-if="!user">
           <div class="flex gap-4">
-            <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
-              Leaderboard
-            </a>
-            <a href="/login.html"
-               class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">
-              Login / Sign Up
-            </a>
+            <a href="/leaderboard.html" class="px-6 py-2 bg-blue-600 rounded">Leaderboard</a>
+            <a href="/login.html" class="px-6 py-2 bg-red-600 rounded">Login / Sign Up</a>
           </div>
         </template>
 
-        <!-- LOGGED IN -->
         <template x-if="user">
           <div class="flex gap-4">
-            <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">
-              Leaderboard
-            </a>
-            <a href="/sessions.html"
-               class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">
-              Sessions
-            </a>
-            <a href="/account.html"
-               class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">
-              My Account
-            </a>
-            <button @click="logout()"
-               class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">
-              Logout
-            </button>
+            <a href="/leaderboard.html" class="px-6 py-2 bg-blue-600 rounded">Leaderboard</a>
+            <a href="/sessions.html" class="px-6 py-2 bg-green-600 rounded">Sessions</a>
+            <a href="/account.html" class="px-6 py-2 bg-yellow-600 rounded">My Account</a>
+            <button @click="logout()" class="px-6 py-2 bg-gray-700 rounded">Logout</button>
           </div>
         </template>
-
       </div>
     </div>
   </nav>
 
-  <!-- MAIN AUTH UI -->
+  <!-- LOGIN UI -->
   <div class="bg-gray-800 p-10 rounded-2xl shadow-2xl w-full max-w-md mt-10"
        x-data="authPage()">
 
     <h2 class="text-4xl font-bold text-center mb-8">Baltimore Poker Gang</h2>
 
-    <!-- SIGNUP FORM -->
+    <!-- SIGNUP -->
     <template x-if="!isLogin">
       <div>
         <h3 class="text-2xl mb-6 text-center">Create Account</h3>
 
-        <input x-model="realName"
-               placeholder="Full Name"
-               class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
+        <input class="w-full p-4 mb-4 bg-gray-700 rounded-lg"
+               placeholder="Full Name" x-model="realName" />
 
-        <input x-model="username"
-               placeholder="Username (letters & numbers only)"
-               class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
+        <input class="w-full p-4 mb-4 bg-gray-700 rounded-lg"
+               placeholder="Username (letters & numbers only)" x-model="username" />
 
-        <input x-model="password"
-               type="password"
-               placeholder="Password"
-               class="w-full p-4 mb-6 bg-gray-700 rounded-lg" />
+        <input class="w-full p-4 mb-6 bg-gray-700 rounded-lg"
+               type="password" placeholder="Password" x-model="password" />
 
-        <button @click="signup()"
-                class="w-full bg-red-600 hover:bg-red-500 py-4 rounded-lg font-bold">
+        <button @click="signup()" class="w-full bg-red-600 py-4 rounded-lg font-bold">
           Sign Up
         </button>
 
@@ -158,22 +143,18 @@
       </div>
     </template>
 
-    <!-- LOGIN FORM -->
+    <!-- LOGIN -->
     <template x-if="isLogin">
       <div>
         <h3 class="text-2xl mb-6 text-center">Welcome Back</h3>
 
-        <input x-model="username"
-               placeholder="Username"
-               class="w-full p-4 mb-4 bg-gray-700 rounded-lg" />
+        <input class="w-full p-4 mb-4 bg-gray-700 rounded-lg"
+               placeholder="Username" x-model="username" />
 
-        <input x-model="password"
-               type="password"
-               placeholder="Password"
-               class="w-full p-4 mb-6 bg-gray-700 rounded-lg" />
+        <input class="w-full p-4 mb-6 bg-gray-700 rounded-lg"
+               type="password" placeholder="Password" x-model="password" />
 
-        <button @click="login()"
-                class="w-full bg-green-600 hover:bg-green-500 py-4 rounded-lg font-bold">
+        <button @click="login()" class="w-full bg-green-600 py-4 rounded-lg font-bold">
           Login
         </button>
 
@@ -181,14 +162,15 @@
           No account?
           <button class="text-red-400" @click="isLogin = false">Sign Up</button>
         </p>
+
       </div>
     </template>
 
+    <!-- MESSAGES -->
     <div x-show="msg"
-         :class="err ? 'text-red-400' : 'text-green-400'"
          class="mt-4 text-center"
-         x-text="msg">
-    </div>
+         :class="err ? 'text-red-400' : 'text-green-400'"
+         x-text="msg"></div>
   </div>
 
   <script>
@@ -207,55 +189,42 @@
 
         async signup() {
           if (!this.realName || !this.username || !this.password) {
-            this.msg = "Please fill out all fields.";
-            this.err = true;
-            return;
+            this.msg = "Please fill out all fields."; this.err = true; return;
           }
-
           if (!this.validateUsername(this.username)) {
-            this.msg = "Username can only contain letters and numbers — no spaces.";
-            this.err = true;
-            return;
+            this.msg = "Username must be letters/numbers only."; this.err = true; return;
           }
 
-          const email = `${this.username.toLowerCase()}@bpg.com`;
+          const email = this.username.toLowerCase() + "@bpg.com";
 
           try {
-            const cred = await createUserWithEmailAndPassword(window.auth, email, this.password);
+            const cred = await window.createUserWithEmailAndPassword(window.auth, email, this.password);
 
-            await setDoc(doc(window.db, "users", cred.user.uid), {
+            await window.setDoc(window.doc(window.db, "users", cred.user.uid), {
               uid: cred.user.uid,
               realName: this.realName,
               username: this.username
             });
 
-            window.location.href = "/account.html";
+            location.href = "/account.html";
 
           } catch (e) {
-            this.msg = e.message;
-            this.err = true;
+            this.msg = e.message; this.err = true;
           }
         },
 
         async login() {
-          if (!this.validateUsername(this.username)) {
-            this.msg = "Invalid username format.";
-            this.err = true;
-            return;
-          }
-
-          const email = `${this.username.toLowerCase()}@bpg.com`;
+          const email = this.username.toLowerCase() + "@bpg.com";
 
           try {
-            await signInWithEmailAndPassword(window.auth, email, this.password);
-            window.location.href = "/account.html";
+            await window.signInWithEmailAndPassword(window.auth, email, this.password);
+            location.href = "/account.html";
 
           } catch (e) {
-            this.msg = "Wrong username or password.";
-            this.err = true;
+            this.msg = "Wrong username or password."; this.err = true;
           }
         }
-      }
+      };
     }
   </script>
 

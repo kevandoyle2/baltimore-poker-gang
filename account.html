@@ -1,36 +1,31 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-gray-900 text-white">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>My Account — Baltimore Poker Gang</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
-  <!-- UPDATED FIREBASE INITIALIZER -->
+  <!-- FIREBASE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import {
-      getAuth,
-      onAuthStateChanged,
-      updatePassword,
-      deleteUser,
-      signOut
+      getAuth, onAuthStateChanged, updatePassword, deleteUser, signOut
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import {
-      getFirestore,
-      doc, getDoc, updateDoc, deleteDoc,
+      getFirestore, doc, getDoc, updateDoc, deleteDoc,
       collection, getDocs, query, where
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCKS9PstXhK_9lVW6IRkCAJ_Gl0G8XlUw",
+      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
       authDomain: "baltimore-poker-gang.firebaseapp.com",
       projectId: "baltimore-poker-gang",
-      storageBucket: "baltimore-poker-gang.firebasestorage.app",
+      storageBucket: "baltimore-poker-gang.appspot.com",
       messagingSenderId: "1082334625118",
       appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
     };
@@ -53,26 +48,25 @@
       location.href = "/index.html";
     };
 
-    // ⭐ GUARANTEED DELIVERY FIX
     let alpineReady = false;
     window.addEventListener("alpine:init", () => {
       alpineReady = true;
-
-      if (window.currentUser !== undefined) {
+      if (window.currentUser !== undefined)
         window.dispatchEvent(new CustomEvent("auth-changed", { detail: window.currentUser }));
-      }
     });
 
     onAuthStateChanged(auth, user => {
       window.currentUser = user;
-
-      if (alpineReady) {
-        window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
-      } else {
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
-        }, 50);
+      if (!user && !location.pathname.includes("login")) {
+        location.href = "/login.html";
+        return;
       }
+
+      if (alpineReady)
+        window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+      else
+        setTimeout(() =>
+          window.dispatchEvent(new CustomEvent("auth-changed", { detail: user })), 50);
     });
   </script>
 </head>
@@ -94,34 +88,26 @@
       </a>
 
       <div class="flex gap-4">
-        <!-- Logged OUT -->
         <template x-if="!user">
           <div class="flex gap-4">
-            <a href="/leaderboard.html"
-              class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
-            <a href="/login.html"
-              class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">Login / Sign Up</a>
+            <a href="/leaderboard.html" class="px-6 py-2 bg-blue-600 rounded">Leaderboard</a>
+            <a href="/login.html" class="px-6 py-2 bg-red-600 rounded">Login / Sign Up</a>
           </div>
         </template>
 
-        <!-- Logged IN -->
         <template x-if="user">
           <div class="flex gap-4">
-            <a href="/leaderboard.html"
-              class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
-            <a href="/sessions.html"
-              class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Sessions</a>
-            <a href="/account.html"
-              class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">My Account</a>
-            <button @click="logout()"
-              class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Logout</button>
+            <a href="/leaderboard.html" class="px-6 py-2 bg-blue-600 rounded">Leaderboard</a>
+            <a href="/sessions.html" class="px-6 py-2 bg-green-600 rounded">Sessions</a>
+            <a href="/account.html" class="px-6 py-2 bg-yellow-600 rounded">My Account</a>
+            <button @click="logout()" class="px-6 py-2 bg-gray-700 rounded">Logout</button>
           </div>
         </template>
       </div>
     </div>
   </nav>
 
-  <!-- ACCOUNT CONTENT -->
+  <!-- MAIN CONTENT -->
   <div class="max-w-3xl mx-auto p-6">
     <h1 class="text-4xl font-bold text-center mb-10">My Account</h1>
 
@@ -130,45 +116,30 @@
       <template x-if="loaded">
         <div>
 
-          <!-- REAL NAME -->
           <div class="mb-8">
             <p class="text-gray-400">Full Name</p>
-            <input class="w-full p-3 mt-2 rounded bg-gray-700"
-                   x-model="realName">
+            <input class="w-full p-3 mt-2 rounded bg-gray-700" x-model="realName">
           </div>
 
-          <!-- USERNAME -->
           <div class="mb-8">
             <p class="text-gray-400">Username</p>
-            <input class="w-full p-3 mt-2 rounded bg-gray-700"
-                   x-model="username">
-            <p class="text-sm text-gray-500 mt-1">
-              Letters & numbers only.
-            </p>
+            <input class="w-full p-3 mt-2 rounded bg-gray-700" x-model="username"/>
+            <p class="mt-1 text-sm text-gray-500">Letters & numbers only</p>
           </div>
 
-          <!-- PASSWORD -->
           <div class="mb-8">
             <p class="text-gray-400">New Password</p>
-            <input type="password"
-                   class="w-full p-3 mt-2 rounded bg-gray-700"
-                   x-model="newPassword">
+            <input type="password" class="w-full p-3 mt-2 rounded bg-gray-700" x-model="newPassword"/>
           </div>
 
-          <button @click="saveChanges()"
-                  class="px-6 py-3 bg-green-600 hover:bg-green-500 rounded font-bold">
-            Save Changes
-          </button>
+          <button class="px-6 py-3 bg-green-600 rounded font-bold"
+                  @click="saveChanges()">Save Changes</button>
 
-          <!-- DELETE -->
           <div class="mt-10 border-t border-gray-700 pt-6">
-            <button @click="deleteAccount()"
-                    class="px-6 py-3 bg-red-700 hover:bg-red-600 rounded font-bold">
-              Delete Account & All Sessions
-            </button>
+            <button class="px-6 py-3 bg-red-700 rounded font-bold"
+                    @click="deleteAccount()">Delete Account & All Sessions</button>
           </div>
 
-          <!-- MESSAGE -->
           <div class="mt-6"
                x-text="msg"
                :class="err ? 'text-red-400' : 'text-green-400'"></div>
@@ -193,48 +164,31 @@
         msg: "",
         err: false,
 
-        validateUsername(name) {
-          return /^[a-zA-Z0-9]+$/.test(name);
-        },
+        validateUsername(n) { return /^[A-Za-z0-9]+$/.test(n); },
 
         init() {
           window.auth.onAuthStateChanged(async user => {
-            if (!user) {
-              location.href = "/login.html";
-              return;
-            }
-
+            if (!user) { location.href = "/login.html"; return; }
             await this.loadAccount();
           });
         },
 
         async loadAccount() {
-          const { doc, getDoc } = window.FS;
+          const snap = await window.FS.getDoc(
+            window.FS.doc(window.db, "users", window.currentUser.uid)
+          );
 
-          const userDoc = await getDoc(doc(window.db, "users", window.currentUser.uid));
-
-          if (!userDoc.exists()) {
-            this.msg = "Account record missing.";
-            this.err = true;
-            return;
-          }
-
-          const data = userDoc.data();
-
+          const data = snap.data();
           this.realName = data.realName;
           this.username = data.username;
-
           this.loaded = true;
         },
 
         async saveChanges() {
-          this.msg = "";
-          this.err = false;
+          this.msg = ""; this.err = false;
 
           if (!this.validateUsername(this.username)) {
-            this.msg = "Username must contain only letters & numbers.";
-            this.err = true;
-            return;
+            this.msg = "Invalid username."; this.err = true; return;
           }
 
           try {
@@ -245,48 +199,57 @@
               username: this.username
             });
 
+            // OPTION B1 — propagate username to all sessions
+            const q = window.FS.query(
+              window.FS.collection(window.db, "sessions"),
+              window.FS.where("userId", "==", window.currentUser.uid)
+            );
+
+            const snap = await window.FS.getDocs(q);
+            for (const d of snap.docs) {
+              await window.FS.updateDoc(
+                window.FS.doc(window.db, "sessions", d.id),
+                { username: this.username }
+              );
+            }
+
             if (this.newPassword.length > 0) {
               await window.FS.updatePassword(window.currentUser, this.newPassword);
             }
 
             this.msg = "Account updated!";
           } catch (e) {
-            this.msg = e.message;
-            this.err = true;
+            this.msg = e.message; this.err = true;
           }
         },
 
         async deleteAccount() {
-          if (!confirm("Are you sure you want to delete your entire account and all sessions?")) {
-            return;
-          }
+          if (!confirm("Delete your account and all sessions?")) return;
 
           try {
-            const { collection, getDocs, query, where, deleteDoc, deleteUser } = window.FS;
-
-            // Delete all sessions
-            const q = query(
-              collection(window.db, "sessions"),
-              where("userId", "==", window.currentUser.uid)
+            // DELETE SESSIONS
+            const q = window.FS.query(
+              window.FS.collection(window.db, "sessions"),
+              window.FS.where("userId", "==", window.currentUser.uid)
             );
-
-            const snap = await getDocs(q);
+            const snap = await window.FS.getDocs(q);
             for (const d of snap.docs) {
-              await deleteDoc(window.FS.doc(window.db, "sessions", d.id));
+              await window.FS.deleteDoc(window.FS.doc(window.db, "sessions", d.id));
             }
 
-            // Delete user document
-            await deleteDoc(window.FS.doc(window.db, "users", window.currentUser.uid));
+            // DELETE USER DOCUMENT
+            await window.FS.deleteDoc(
+              window.FS.doc(window.db, "users", window.currentUser.uid)
+            );
 
-            // Delete Firebase auth account
-            await deleteUser(window.currentUser);
+            // DELETE AUTH ACCOUNT
+            await window.FS.deleteUser(window.currentUser);
 
             alert("Account deleted.");
             location.href = "/index.html";
 
           } catch (e) {
-            this.msg = e.message;
-            this.err = true;
+            this.msg = e.message; this.err = true;
           }
         }
       }
