@@ -16,13 +16,15 @@
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCKS9PstXhK_9lWVW6IRkCAJ_Gl0G8XlUw",
+      apiKey: "AIzaSyCKS9PstXhK_9lVW6IRkCAJ_Gl0G8XlUw",
       authDomain: "baltimore-poker-gang.firebaseapp.com",
       projectId: "baltimore-poker-gang",
-      storageBucket: "baltimore-poker-gang.appspot.com",
+      storageBucket: "baltimore-poker-gang.firebasestorage.app",
       messagingSenderId: "1082334625118",
-      appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf"
+      appId: "1:1082334625118:web:3f90a5721f9f1f2790a3cf",
+      measurementId: "G-WG9B6920WS"
     };
+
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
