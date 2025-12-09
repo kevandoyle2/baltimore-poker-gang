@@ -10,24 +10,20 @@
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <!-- Firebase -->
+  <!-- UPDATED FIREBASE INITIALIZER -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import {
       getAuth,
       onAuthStateChanged,
-      signOut
+      signOut,
+      updatePassword,
+      deleteUser
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import {
       getFirestore,
-      collection,
-      addDoc,
-      getDocs,
-      query,
-      where,
-      doc,
-      updateDoc,
-      deleteDoc
+      doc, getDoc, updateDoc, deleteDoc,
+      collection, getDocs, query, where, addDoc
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -46,17 +42,36 @@
     window.auth = auth;
     window.db = db;
 
-    window.logout = async () => {
-      await signOut(auth);
-      window.location.href = "/index.html";
+    window.FS = {
+      doc, getDoc, updateDoc, deleteDoc,
+      collection, getDocs, query, where, addDoc
     };
 
-    // Firestore utilities
-    window.FS = { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc };
+    window.logout = async () => {
+      await signOut(auth);
+      location.href = "/index.html";
+    };
+
+    // ⭐ GUARANTEED EVENT DELIVERY SYSTEM
+    let alpineReady = false;
+    window.addEventListener("alpine:init", () => {
+      alpineReady = true;
+
+      if (window.currentUser !== undefined) {
+        window.dispatchEvent(new CustomEvent("auth-changed", { detail: window.currentUser }));
+      }
+    });
 
     onAuthStateChanged(auth, user => {
       window.currentUser = user;
-      window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+
+      if (alpineReady) {
+        window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+      } else {
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+        }, 50);
+      }
     });
   </script>
 </head>
@@ -65,7 +80,7 @@
       x-data="sessionsPage()"
       x-init="init()">
 
-  <!-- NAVBAR (unchanged) -->
+  <!-- NAVBAR -->
   <nav class="bg-black p-4 shadow-lg"
        x-data="{ user: null }"
        x-init="
@@ -76,33 +91,36 @@
       <a href="/index.html" class="text-2xl font-bold flex items-center gap-3">
         <i class="fas fa-diamond text-red-600"></i> Baltimore Poker Gang
       </a>
+
       <div class="flex gap-4">
+        <!-- Logged OUT -->
         <template x-if="!user">
           <div class="flex gap-4">
             <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
+              class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
             <a href="/login.html"
-               class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">Login / Sign Up</a>
+              class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">Login / Sign Up</a>
           </div>
         </template>
 
+        <!-- Logged IN -->
         <template x-if="user">
           <div class="flex gap-4">
             <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
+              class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
             <a href="/sessions.html"
-               class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Sessions</a>
+              class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Sessions</a>
             <a href="/account.html"
-               class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">My Account</a>
+              class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">My Account</a>
             <button @click="logout()"
-               class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Logout</button>
+              class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Logout</button>
           </div>
         </template>
       </div>
     </div>
   </nav>
 
-  <!-- MAIN CONTENT -->
+  <!-- SESSIONS CONTENT -->
   <div class="max-w-4xl mx-auto p-6">
 
     <h1 class="text-4xl font-bold text-center mb-10">Your Sessions</h1>
@@ -113,26 +131,29 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <input type="date" x-model="newSession.date" class="p-3 rounded bg-gray-700" />
-        <input type="number" x-model.number="newSession.buyin" placeholder="Buy-in ($)" class="p-3 rounded bg-gray-700" />
-        <input type="number" x-model.number="newSession.cashout" placeholder="Cash-out ($)" class="p-3 rounded bg-gray-700" />
+        <input type="number" x-model.number="newSession.buyin" placeholder="Buy-in"
+               class="p-3 rounded bg-gray-700" />
+        <input type="number" x-model.number="newSession.cashout" placeholder="Cash-out"
+               class="p-3 rounded bg-gray-700" />
       </div>
 
       <button @click="addSession()"
               class="mt-4 px-6 py-3 bg-green-600 hover:bg-green-500 rounded font-bold">Add Session</button>
     </div>
 
-    <!-- SESSION TABLE -->
+    <!-- SESSIONS TABLE -->
     <div class="bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+
       <h3 class="text-2xl font-bold p-6 bg-gray-900">Session History</h3>
 
       <table class="w-full">
         <thead class="bg-gray-900">
           <tr>
-            <th class="p-4 text-left">Date</th>
-            <th class="p-4 text-left">Buy-in</th>
-            <th class="p-4 text-left">Cash-out</th>
-            <th class="p-4 text-left">Profit</th>
-            <th class="p-4 text-left">Actions</th>
+            <th class="p-4">Date</th>
+            <th class="p-4">Buy-in</th>
+            <th class="p-4">Cash-out</th>
+            <th class="p-4">Profit</th>
+            <th class="p-4"></th>
           </tr>
         </thead>
 
@@ -142,7 +163,6 @@
               <td class="p-4" x-text="s.date"></td>
               <td class="p-4">$<span x-text="s.buyin"></span></td>
               <td class="p-4">$<span x-text="s.cashout"></span></td>
-
               <td class="p-4 font-bold"
                   :class="(s.cashout - s.buyin) >= 0 ? 'text-green-400' : 'text-red-400'">
                 $<span x-text="(s.cashout - s.buyin).toFixed(2)"></span>
@@ -165,17 +185,17 @@
       <div class="p-6 bg-gray-900 border-t border-gray-700 grid grid-cols-3 text-center">
         <div>
           <p class="text-gray-400">Total Buy-ins</p>
-          <p class="text-2xl">$<span x-text="totalBuyin"></span></p>
+          <p class="text-2xl" x-text="'$' + totalBuyin"></p>
         </div>
         <div>
           <p class="text-gray-400">Total Cash-outs</p>
-          <p class="text-2xl">$<span x-text="totalCashout"></span></p>
+          <p class="text-2xl" x-text="'$' + totalCashout"></p>
         </div>
         <div>
           <p class="text-gray-400">Net</p>
           <p class="text-3xl font-bold"
-             :class="net >= 0 ? 'text-green-400' : 'text-red-400'">
-            $<span x-text="net.toFixed(2)"></span>
+             :class="net >= 0 ? 'text-green-400' : 'text-red-400'"
+             x-text="'$' + net.toFixed(2)">
           </p>
         </div>
       </div>
@@ -198,15 +218,16 @@
 
       <div class="mt-6 flex justify-end gap-4">
         <button @click="editOpen = false"
-                class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Cancel</button>
+          class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Cancel</button>
 
         <button @click="saveEdit()"
-                class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Save</button>
+          class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Save</button>
       </div>
 
     </div>
   </div>
 
+  <!-- MAIN JS FOR PAGE -->
   <script>
     function sessionsPage() {
       return {
@@ -221,15 +242,13 @@
         editSession: {},
         editId: null,
 
-        // ⭐ FIXED AUTH HANDLING
         init() {
           window.auth.onAuthStateChanged(async user => {
             if (!user) {
-              window.location.href = "/login.html";
+              location.href = "/login.html";
               return;
             }
 
-            window.currentUser = user;
             await this.loadSessions();
           });
         },

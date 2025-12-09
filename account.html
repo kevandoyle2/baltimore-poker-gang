@@ -10,7 +10,7 @@
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <!-- Firebase -->
+  <!-- UPDATED FIREBASE INITIALIZER -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import {
@@ -22,14 +22,8 @@
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
     import {
       getFirestore,
-      doc,
-      getDoc,
-      updateDoc,
-      deleteDoc,
-      collection,
-      getDocs,
-      query,
-      where
+      doc, getDoc, updateDoc, deleteDoc,
+      collection, getDocs, query, where
     } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -48,16 +42,37 @@
     window.auth = auth;
     window.db = db;
 
-    window.logout = async () => {
-      await signOut(auth);
-      window.location.href = "/index.html";
+    window.FS = {
+      doc, getDoc, updateDoc, deleteDoc,
+      collection, getDocs, query, where,
+      updatePassword, deleteUser
     };
 
-    window.FS = { doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where, updatePassword, deleteUser };
+    window.logout = async () => {
+      await signOut(auth);
+      location.href = "/index.html";
+    };
+
+    // ⭐ GUARANTEED DELIVERY FIX
+    let alpineReady = false;
+    window.addEventListener("alpine:init", () => {
+      alpineReady = true;
+
+      if (window.currentUser !== undefined) {
+        window.dispatchEvent(new CustomEvent("auth-changed", { detail: window.currentUser }));
+      }
+    });
 
     onAuthStateChanged(auth, user => {
       window.currentUser = user;
-      window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+
+      if (alpineReady) {
+        window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+      } else {
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("auth-changed", { detail: user }));
+        }, 50);
+      }
     });
   </script>
 </head>
@@ -77,35 +92,37 @@
       <a href="/index.html" class="text-2xl font-bold flex items-center gap-3">
         <i class="fas fa-diamond text-red-600"></i> Baltimore Poker Gang
       </a>
+
       <div class="flex gap-4">
+        <!-- Logged OUT -->
         <template x-if="!user">
           <div class="flex gap-4">
             <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
+              class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
             <a href="/login.html"
-               class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">Login / Sign Up</a>
+              class="px-6 py-2 bg-red-600 hover:bg-red-500 rounded font-bold">Login / Sign Up</a>
           </div>
         </template>
 
+        <!-- Logged IN -->
         <template x-if="user">
           <div class="flex gap-4">
             <a href="/leaderboard.html"
-               class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
+              class="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded font-bold">Leaderboard</a>
             <a href="/sessions.html"
-               class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Sessions</a>
+              class="px-6 py-2 bg-green-600 hover:bg-green-500 rounded font-bold">Sessions</a>
             <a href="/account.html"
-               class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">My Account</a>
+              class="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 rounded font-bold">My Account</a>
             <button @click="logout()"
-               class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Logout</button>
+              class="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-bold">Logout</button>
           </div>
         </template>
       </div>
     </div>
   </nav>
 
-  <!-- MAIN CONTENT -->
+  <!-- ACCOUNT CONTENT -->
   <div class="max-w-3xl mx-auto p-6">
-
     <h1 class="text-4xl font-bold text-center mb-10">My Account</h1>
 
     <div class="bg-gray-800 p-8 rounded-xl shadow-xl">
@@ -113,19 +130,24 @@
       <template x-if="loaded">
         <div>
 
+          <!-- REAL NAME -->
           <div class="mb-8">
             <p class="text-gray-400">Full Name</p>
             <input class="w-full p-3 mt-2 rounded bg-gray-700"
                    x-model="realName">
           </div>
 
+          <!-- USERNAME -->
           <div class="mb-8">
             <p class="text-gray-400">Username</p>
             <input class="w-full p-3 mt-2 rounded bg-gray-700"
                    x-model="username">
-            <p class="text-sm text-gray-500 mt-1">Letters & numbers only.</p>
+            <p class="text-sm text-gray-500 mt-1">
+              Letters & numbers only.
+            </p>
           </div>
 
+          <!-- PASSWORD -->
           <div class="mb-8">
             <p class="text-gray-400">New Password</p>
             <input type="password"
@@ -138,7 +160,7 @@
             Save Changes
           </button>
 
-          <!-- DELETE ACCOUNT -->
+          <!-- DELETE -->
           <div class="mt-10 border-t border-gray-700 pt-6">
             <button @click="deleteAccount()"
                     class="px-6 py-3 bg-red-700 hover:bg-red-600 rounded font-bold">
@@ -146,12 +168,16 @@
             </button>
           </div>
 
-          <div class="mt-6" x-text="msg" :class="err ? 'text-red-400' : 'text-green-400'"></div>
+          <!-- MESSAGE -->
+          <div class="mt-6"
+               x-text="msg"
+               :class="err ? 'text-red-400' : 'text-green-400'"></div>
+
         </div>
       </template>
 
       <template x-if="!loaded">
-        <p>Loading...</p>
+        <p class="text-gray-400">Loading...</p>
       </template>
 
     </div>
@@ -171,15 +197,13 @@
           return /^[a-zA-Z0-9]+$/.test(name);
         },
 
-        // ⭐ FIXED AUTH HANDLING
         init() {
           window.auth.onAuthStateChanged(async user => {
             if (!user) {
-              window.location.href = "/login.html";
+              location.href = "/login.html";
               return;
             }
 
-            window.currentUser = user;
             await this.loadAccount();
           });
         },
@@ -196,6 +220,7 @@
           }
 
           const data = userDoc.data();
+
           this.realName = data.realName;
           this.username = data.username;
 
@@ -207,24 +232,24 @@
           this.err = false;
 
           if (!this.validateUsername(this.username)) {
-            this.msg = "Username must only contain letters & numbers.";
+            this.msg = "Username must contain only letters & numbers.";
             this.err = true;
             return;
           }
 
-          const { doc, updateDoc, updatePassword } = window.FS;
-
           try {
-            await updateDoc(doc(window.db, "users", window.currentUser.uid), {
+            const userRef = window.FS.doc(window.db, "users", window.currentUser.uid);
+
+            await window.FS.updateDoc(userRef, {
               realName: this.realName,
               username: this.username
             });
 
             if (this.newPassword.length > 0) {
-              await updatePassword(window.currentUser, this.newPassword);
+              await window.FS.updatePassword(window.currentUser, this.newPassword);
             }
 
-            this.msg = "Account updated successfully!";
+            this.msg = "Account updated!";
           } catch (e) {
             this.msg = e.message;
             this.err = true;
@@ -232,28 +257,33 @@
         },
 
         async deleteAccount() {
-          if (!confirm("Are you sure you want to delete your account AND all sessions?")) {
+          if (!confirm("Are you sure you want to delete your entire account and all sessions?")) {
             return;
           }
 
-          const { doc, deleteDoc, collection, getDocs, query, where, deleteUser } = window.FS;
-
           try {
+            const { collection, getDocs, query, where, deleteDoc, deleteUser } = window.FS;
+
             // Delete all sessions
             const q = query(
               collection(window.db, "sessions"),
               where("userId", "==", window.currentUser.uid)
             );
+
             const snap = await getDocs(q);
             for (const d of snap.docs) {
-              await deleteDoc(doc(window.db, "sessions", d.id));
+              await deleteDoc(window.FS.doc(window.db, "sessions", d.id));
             }
 
-            await deleteDoc(doc(window.db, "users", window.currentUser.uid));
+            // Delete user document
+            await deleteDoc(window.FS.doc(window.db, "users", window.currentUser.uid));
+
+            // Delete Firebase auth account
             await deleteUser(window.currentUser);
 
             alert("Account deleted.");
-            window.location.href = "/index.html";
+            location.href = "/index.html";
+
           } catch (e) {
             this.msg = e.message;
             this.err = true;
